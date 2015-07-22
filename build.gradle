@@ -1,0 +1,138 @@
+apply plugin: 'java'
+apply plugin: 'war'
+apply plugin: 'idea'
+apply plugin: 'eclipse'
+apply plugin: 'eclipse-wtp'
+
+ext {
+    javaVersion   = '1.7'
+    springVersion = '4.0.6.RELEASE'
+    querydslVesion = '3.4.2'
+}
+
+sourceCompatibility = javaVersion 
+targetCompatibility = javaVersion
+version = '1.0'
+[compileJava, compileTestJava]*.options*.encoding = 'UTF-8' 
+
+jar {
+    manifest {
+        attributes 'Implementation-Title': 'Gradle Quickstart',
+                   'Implementation-Version': version
+    }
+}
+
+repositories {
+    mavenCentral() 
+}
+
+dependencies {
+	compile 'javax.servlet:jstl:1.2', 
+				'org.springframework:spring-webmvc:'+springVersion, 
+				'org.springframework:spring-tx:'+springVersion, 
+				'taglibs:standard:1.1.2', 
+				'org.springframework:spring-orm:'+springVersion, 
+				'ch.qos.logback:logback-classic:1.0.6', 
+				'org.springframework.data:spring-data-mongodb:1.5.2.RELEASE',  
+				'com.mysema.querydsl:querydsl-mongodb:'+querydslVesion, 
+				'com.mysema.querydsl:querydsl-apt:'+querydslVesion, 
+				'com.mysema.querydsl:querydsl-jpa:'+querydslVesion, 
+				'org.hibernate.javax.persistence:hibernate-jpa-2.0-api:1.0.0.Final'
+	
+	providedCompile 'javax.servlet:javax.servlet-api:3.0.1', 
+							 'javax.servlet.jsp:jsp-api:2.1'  
+    
+    testCompile 'junit:junit:4.12', 
+    				  'org.springframework:spring-test:'+springVersion
+}
+
+sourceSets {
+    generated {
+        java {
+            srcDirs = ['src/main/generated']
+        }
+    }
+}
+
+test {
+    systemProperties 'property': 'value'
+}
+
+uploadArchives {
+    repositories {
+       flatDir {
+           dirs 'repos'
+       }
+    }
+}
+
+// QEntity 생성 task
+task generateQueryDSL(type: JavaCompile, group: 'build', description: 'Generates the QueryDSL query types') {
+    source = sourceSets.main.java
+    classpath = configurations.compile 
+    options.compilerArgs = [
+            "-proc:only",
+            "-processor", "com.mysema.query.apt.jpa.JPAAnnotationProcessor"
+    ]
+    destinationDir = sourceSets.generated.java.srcDirs.iterator().next()
+}
+
+// compileJava task에 dependency를 걸어줍니다.
+compileJava {
+    dependsOn generateQueryDSL
+    // compile target에 generated된 QClass들의 위치를 추가.
+    source sourceSets.generated.java.srcDirs.iterator().next()
+}
+
+compileGeneratedJava {
+    dependsOn generateQueryDSL
+    options.warnings = false
+    classpath += sourceSets.main.runtimeClasspath
+}
+
+clean {
+    delete sourceSets.generated.java.srcDirs
+}
+
+idea {
+    module {
+        sourceDirs += file('src/main/generated')
+    }
+}
+
+eclipse {
+    classpath {
+        downloadSources = true
+    }
+    wtp {
+        facet {
+        	//facet name: 'jst.web', version: '3.0' // Servlet Spec Version 지정, 미 지정시 2.4 
+        	//.settings\org.eclipse.wst.common.project.facet.core.xml에서 확인 가능하며 작동 이상으로 아래 file로 대체 
+        	file {
+		        whenMerged { wtpFacet ->
+		          def installedJstFacet = wtpFacet.facets.find { facet ->
+		            facet.name == 'jst.web' && facet.type == org.gradle.plugins.ide.eclipse.model.Facet.FacetType.installed
+		          	}
+		          installedJstFacet.version = '3.0'
+		         }
+		    }
+		    
+            facet name: 'jst.java' , version: '1.7' // Java Version 지정, 1.7 ...
+            facet name: 'wst.jsdt.web', version: '1.0' // javascript 버전 1
+        }
+    }
+    project {
+      natures 'com.google.gwt.eclipse.core.gwtNature'
+	}
+}
+
+// 프로젝트 빌드 시 폴더 생성
+task initProject << {
+def webappDir = "$rootDir/src/main/webapp"
+file(webappDir + "/WEB-INF/views").mkdirs()
+file(webappDir + "/resources").mkdirs()
+file(webappDir + "/META-INF").mkdir()
+}
+
+tasks.eclipse.dependsOn initProject
+
