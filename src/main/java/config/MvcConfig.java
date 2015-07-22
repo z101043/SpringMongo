@@ -1,8 +1,11 @@
 package config;
 
+import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.web.servlet.ViewResolver;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
@@ -32,6 +35,19 @@ public class MvcConfig extends WebMvcConfigurerAdapter // 인터셉터를 추가
         resolver.setPrefix("/WEB-INF/views/");
         resolver.setSuffix(".jsp");
         return resolver;
+    }
+    
+    @Bean
+    public static PropertyPlaceholderConfigurer properties() {
+      PropertyPlaceholderConfigurer ppc = new PropertyPlaceholderConfigurer();
+
+      Resource[] resources =
+          new ClassPathResource[] {new ClassPathResource("application.properties")};
+      ppc.setLocations(resources);
+      ppc.setIgnoreResourceNotFound(false);
+      ppc.setIgnoreUnresolvablePlaceholders(false);
+
+      return ppc;
     }
     
     /**
