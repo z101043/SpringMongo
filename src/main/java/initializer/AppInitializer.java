@@ -11,6 +11,7 @@ import org.springframework.web.context.support.AnnotationConfigWebApplicationCon
 import org.springframework.web.filter.CharacterEncodingFilter;
 import org.springframework.web.servlet.DispatcherServlet;
 
+import config.MongoConfig;
 import config.MvcConfig;
 import config.RootConfig;
 
@@ -20,14 +21,15 @@ import config.RootConfig;
  * @author mj
  *
  */
-public class Initializer implements WebApplicationInitializer
+public class AppInitializer implements WebApplicationInitializer
 {
     @Override
     public void onStartup(ServletContext servletContext)
             throws ServletException
     {
         AnnotationConfigWebApplicationContext rootContext = new AnnotationConfigWebApplicationContext();
-        rootContext.register(RootConfig.class);
+        //rootContext.register(RootConfig.class);
+        rootContext.register(MongoConfig.class);
         servletContext.addListener(new ContextLoaderListener(rootContext));
         
         this.addDispatcherServlet(servletContext);
@@ -42,13 +44,12 @@ public class Initializer implements WebApplicationInitializer
     private void addDispatcherServlet(ServletContext servletContext)
     {
         AnnotationConfigWebApplicationContext applicationContext = new AnnotationConfigWebApplicationContext();
-        applicationContext.getEnvironment().addActiveProfile("production");
         applicationContext.register(MvcConfig.class);
         
         ServletRegistration.Dynamic dispatcher = servletContext.addServlet("dispatcher", new DispatcherServlet(applicationContext));
         dispatcher.setLoadOnStartup(1);
         dispatcher.addMapping("/");
-        dispatcher.setInitParameter("dispatchOptionsRequest", "true"); // CORS 를 위해서 option request 도 받아들인다.
+       // dispatcher.setInitParameter("dispatchOptionsRequest", "true"); // CORS 를 위해서 option request 도 받아들인다.
     }
     
     /**
