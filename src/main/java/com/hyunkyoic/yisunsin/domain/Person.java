@@ -1,9 +1,11 @@
 package com.hyunkyoic.yisunsin.domain;
 
+import javax.persistence.Entity;
 import javax.persistence.Id;
 
 import org.springframework.data.mongodb.core.mapping.Document;
 
+@Entity
 @Document(collection="person")
 public class Person {
 

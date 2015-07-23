@@ -7,44 +7,18 @@ apply plugin: 'eclipse-wtp'
 ext {
     javaVersion   = '1.7'
     springVersion = '4.0.6.RELEASE'
-    querydslVesion = '3.4.2'
 }
 
 sourceCompatibility = javaVersion 
 targetCompatibility = javaVersion
 version = '1.0'
-[compileJava, compileTestJava]*.options*.encoding = 'UTF-8' 
+[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 
 jar {
     manifest {
         attributes 'Implementation-Title': 'Gradle Quickstart',
                    'Implementation-Version': version
     }
-}
-
-repositories {
-    mavenCentral() 
-}
-
-dependencies {
-	compile 'javax.servlet:jstl:1.2', 
-				'org.springframework:spring-webmvc:'+springVersion, 
-				'org.springframework:spring-tx:'+springVersion, 
-				'taglibs:standard:1.1.2', 
-				'org.springframework:spring-orm:'+springVersion, 
-				'ch.qos.logback:logback-classic:1.0.6', 
-				'org.springframework.data:spring-data-mongodb:1.5.2.RELEASE',  
-				'com.mysema.querydsl:querydsl-mongodb:'+querydslVesion, 
-				'com.mysema.querydsl:querydsl-apt:'+querydslVesion, 
-				'com.mysema.querydsl:querydsl-jpa:'+querydslVesion, 
-				'org.hibernate.javax.persistence:hibernate-jpa-2.0-api:1.0.0.Final', 
-				'org.projectlombok:lombok:1.14.4'
-	
-	providedCompile 'javax.servlet:javax.servlet-api:3.0.1', 
-							 'javax.servlet.jsp:jsp-api:2.1' 
-    
-    testCompile 'junit:junit:4.12', 
-    				  'org.springframework:spring-test:'+springVersion
 }
 
 sourceSets {
@@ -54,6 +28,44 @@ sourceSets {
         }
     }
 }
+
+configurations {
+    querydslapt
+}
+
+repositories {
+    mavenCentral() 
+}
+
+dependencies {
+	compile "javax.servlet:jstl:1.2", 
+				"org.springframework:spring-webmvc:$springVersion", 
+				"org.springframework:spring-tx:$springVersion", 
+				"taglibs:standard:1.1.2", 
+				"org.springframework:spring-orm:$springVersion", 
+				"ch.qos.logback:logback-classic:1.0.6", 
+				"org.springframework.data:spring-data-mongodb:1.5.2.RELEASE",  
+				"org.hibernate.javax.persistence:hibernate-jpa-2.0-api:1.0.0.Final", 
+				"org.hibernate:hibernate-validator:5.2.0.Final", 
+				"org.projectlombok:lombok:1.14.4"
+	
+	def queryDSL = '3.4.2'
+	compile("com.mysema.querydsl:querydsl-mongodb:$queryDSL")
+    compile("com.mysema.querydsl:querydsl-core:$queryDSL")
+    compile("com.mysema.querydsl:querydsl-jpa:$queryDSL")
+    compile("com.mysema.querydsl:querydsl-sql:$queryDSL")
+    providedCompile("com.mysema.querydsl:querydsl-apt:$queryDSL") {
+        exclude group: 'com.google.guava'
+    }
+    
+	providedCompile "javax.servlet:javax.servlet-api:3.0.1", 
+							 "javax.servlet.jsp:jsp-api:2.1" 
+    
+    testCompile "junit:junit:4.12", 
+    				  "org.springframework:spring-test:$springVersion"
+    				  
+}
+
 
 test {
     systemProperties 'property': 'value'
@@ -70,14 +82,14 @@ uploadArchives {
 // QEntity 생성 task
 task generateQueryDSL(type: JavaCompile, group: 'build', description: 'Generates the QueryDSL query types') {
     source = sourceSets.main.java
-    classpath = configurations.compile
+    classpath = configurations.compile + configurations.providedCompile
     options.compilerArgs = [
             "-proc:only",
             "-processor", "com.mysema.query.apt.jpa.JPAAnnotationProcessor"
     ]
+    options.encoding = "UTF-8"
     destinationDir = sourceSets.generated.java.srcDirs.iterator().next()
 }
-
 compileJava {
     dependsOn generateQueryDSL
     source generateQueryDSL.destinationDir
@@ -86,7 +98,7 @@ compileJava {
 compileGeneratedJava {
     dependsOn generateQueryDSL
     options.warnings = false
-    classpath += sourceSets.main.runtimeClasspath
+    classpath += [ sourceSets.main.runtimeClasspath ]
 }
 
 clean {
@@ -95,7 +107,7 @@ clean {
 
 idea {
     module {
-        sourceDirs += file('src/main/generated')
+        sourceDirs += [ file('src/main/generated') ]
     }
 }
 
@@ -133,5 +145,5 @@ file(webappDir + "/resources").mkdirs()
 file(webappDir + "/META-INF").mkdir()
 }
 
+tasks.eclipse.dependsOn generateQueryDSL
 tasks.eclipse.dependsOn initProject
-
